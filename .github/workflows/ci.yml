@@ -1,0 +1,52 @@
+name: Continuous Integration
+
+on:
+  push:
+  pull_request:
+  schedule:
+  - cron:  '0 0 * * *'
+
+jobs:
+  ci:
+    name: CI with Default Configuration
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Fetch Sources
+      uses: actions/checkout@v2
+    - name: Build Project
+      run: cargo build --verbose --all-targets
+    - name: Run Tests
+      run: cargo test --verbose
+
+  crossbuild:
+    name: Cross-Compilation To UEFI Target
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Fetch Sources
+      uses: actions/checkout@v2
+    - name: Install Rust Components
+      run: |
+        rustup toolchain install nightly
+        rustup default nightly
+        rustup component add rust-src
+        cargo install --force cargo-xbuild
+    - name: Build Project
+      run: |
+        cargo xbuild --verbose \
+          --target x86_64-unknown-uefi \
+          --features examples \
+          --lib --bins --examples
+
+  rustfmt:
+    name: Check Rust Formatting
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Fetch Sources
+      uses: actions/checkout@v2
+    - name: Install Rust Components
+      run: rustup component add rustfmt
+    - name: Verify Code Formatting
+      run: cargo fmt --all -- --check
